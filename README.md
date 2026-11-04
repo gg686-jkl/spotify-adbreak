@@ -55,10 +55,6 @@ stable Linux interfaces:
 This project keeps that foundation and adds local ad-break music plus the
 pre-mute guard that hides the first moment of an ad.
 
-- session D-Bus MPRIS metadata for ad detection
-- PulseAudio or PipeWire's Pulse compatibility layer for per-app muting
-- `mpv` for local ad-break playback
-
 ## Features
 
 - detects ads from track IDs starting with `spotify:ad`, `/com/spotify/ad/`, or
