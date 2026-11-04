@@ -1,0 +1,35 @@
+# Contributing
+
+Thanks for considering a contribution.
+
+## Development setup
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -e .
+```
+
+## Test before opening a PR
+
+```bash
+.venv/bin/python -m unittest discover -s tests
+.venv/bin/python -m compileall src tests
+```
+
+GitHub Actions runs the same checks on pushes and pull requests.
+
+## Guidelines
+
+- keep changes focused and small when possible
+- follow the existing project structure in `src/spotify_adbreak/`
+- add or update tests for behavior changes
+- update docs when commands, setup, or behavior changes
+
+## Reporting bugs
+
+Include:
+
+- your Linux desktop environment and version
+- whether you use PulseAudio or PipeWire
+- relevant command output or service logs
+- steps to reproduce

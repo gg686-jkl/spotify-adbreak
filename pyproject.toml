@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spotify-adbreak"
+version = "0.1.0"
+description = "Mute Spotify ads on Linux and fill the break with local music"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.11"
+keywords = ["spotify", "linux", "mpris", "pipewire", "pulseaudio", "mpv", "ad-muter"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+  "dbus-next>=0.2.3",
+  "pulsectl>=24.12.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/gg686-jkl/spotify-adbreak"
+Repository = "https://github.com/gg686-jkl/spotify-adbreak"
+Issues = "https://github.com/gg686-jkl/spotify-adbreak/issues"
+Changelog = "https://github.com/gg686-jkl/spotify-adbreak/blob/main/CHANGELOG.md"
+Upstream = "https://github.com/Rishabh-Bajpai/spotify-ad-muter"
+
+[project.scripts]
+spotify-adbreak = "spotify_adbreak.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

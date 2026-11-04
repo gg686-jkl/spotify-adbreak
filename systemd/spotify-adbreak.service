@@ -1,0 +1,12 @@
+[Unit]
+Description=Spotify Ad Break - mute ads and play local music
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=@PROJECT_ROOT@/.venv/bin/spotify-adbreak --config %h/.config/spotify-adbreak/config.toml
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

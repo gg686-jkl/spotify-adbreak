@@ -1,0 +1,18 @@
+spotify-adbreak
+Copyright (c) 2026 Kadel and spotify-adbreak contributors
+
+This project is derived from spotify-ad-muter:
+
+  spotify-ad-muter
+  Copyright (c) 2026 Rishabh Bajpai
+  https://github.com/Rishabh-Bajpai/spotify-ad-muter
+  Licensed under the MIT License.
+
+The upstream project's ad-detection approach was inspired by
+danigm/spotify-ad-blocker:
+
+  https://github.com/danigm/spotify-ad-blocker
+
+No source code from that GPL-3.0 project is included in this repository.
+The local-music ad-break player, pre-mute guard, and the other changes in this
+project are original modifications released under the MIT License.
