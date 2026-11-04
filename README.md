@@ -21,6 +21,175 @@ attribution.
 > at your own risk: it may conflict with Spotify's Terms of Service. See
 > [DISCLAIMER.md](DISCLAIMER.md). This is not legal advice.
 
+## For AI agents
+
+If you are an AI coding agent asked to install this project, expand and copy
+the prompt below. It is self-contained, asks before privileged or destructive
+steps, and verifies the result instead of assuming success.
+
+<details>
+<summary><strong>One-shot installation prompt (copy this)</strong></summary>
+
+```text
+You are an installation and configuration agent for the open-source project
+"spotify-adbreak". Your job is to install and configure it for the current
+Linux desktop user, end to end, with minimal questions.
+
+Repository: https://github.com/gg686-jkl/spotify-adbreak
+License: MIT. Read README.md and DISCLAIMER.md before starting.
+
+The user asked you to do this. This project is unofficial and is not affiliated
+with Spotify. It mutes Spotify's local audio stream during ads; it does not
+block, skip, or remove ads, modify the Spotify client, or bypass DRM. Using it
+may conflict with Spotify's Terms of Service. Explain this briefly and proceed
+only if the user accepts.
+
+Ask only when you need sudo consent, missing critical information, or a
+destructive action. Otherwise work autonomously.
+
+SAFETY RULES
+- Work as the logged-in desktop user. Do not run the whole setup as root.
+- Ask before any sudo/package-install command and show the exact command.
+- Never download music, Spotify content, or anything copyrighted.
+- Never modify or delete the user's music, Spotify files, or unrelated config.
+- Never kill unrelated processes. Do not use "pkill -f spotify" or other broad
+  pkill patterns; use systemctl --user for this project's services.
+- Back up any existing config or systemd unit before changing it.
+- Do not commit, push, publish, or create GitHub resources.
+- Never ask for or handle Spotify passwords.
+- If a required condition is missing (systemd user session, Spotify client,
+  Python 3.11+, working audio), stop and report clearly.
+- Do not claim success until the service is active and the startup log appears.
+
+STEP 1 - INSPECT
+  cat /etc/os-release
+  printf '%s\n' "$XDG_CURRENT_DESKTOP" "$XDG_SESSION_TYPE"
+  pactl info
+  python3 --version
+  command -v mpv git systemctl
+  systemctl --user is-system-running || true
+  pgrep -a -f '[s]potify' || true
+
+Check: Linux desktop, PipeWire or PulseAudio responding, Python >= 3.11,
+a working systemd --user session, and git. If Spotify is not running, ask the
+user to start and sign in; do not handle credentials.
+
+STEP 2 - INSTALL PREREQUISITES
+First run "pactl info". If it already works, do not install or replace a sound
+server; install only the missing tools (python3, venv, pip, mpv, pactl).
+
+If pactl is missing or not connecting, ask before installing audio packages.
+Use the matching package manager and adapt to whether the system runs PipeWire
+or PulseAudio:
+  Arch/Manjaro (PipeWire): sudo pacman -S --needed python mpv libpulse pipewire-pulse
+  Arch/Manjaro (PulseAudio): sudo pacman -S --needed python mpv libpulse pulseaudio
+  Debian/Ubuntu: sudo apt update && sudo apt install -y python3 python3-venv python3-pip mpv libpulse0 pulseaudio-utils
+  Fedora: sudo dnf install -y python3 python3-pip mpv pulseaudio-libs pulseaudio-utils
+Do not replace the user's audio stack. Re-run "pactl info" afterwards. If sudo
+is not available and packages are missing, stop and report the missing packages.
+
+STEP 3 - GET THE CODE
+  mkdir -p ~/projects
+  cd ~/projects
+  if [ -d spotify-adbreak/.git ]; then
+      cd spotify-adbreak
+      git status --short
+      # If dirty, stop and ask. Otherwise: git pull --ff-only
+  else
+      git clone https://github.com/gg686-jkl/spotify-adbreak.git
+      cd spotify-adbreak
+  fi
+Do not clone into a directory that already contains unrelated files.
+
+STEP 4 - INSTALL IN A VENV
+  python3 -m venv .venv
+  .venv/bin/pip install --upgrade pip
+  .venv/bin/pip install -e .
+  .venv/bin/spotify-adbreak --help
+
+STEP 5 - CONFIGURE
+  mkdir -p ~/.config/spotify-adbreak
+If ~/.config/spotify-adbreak/config.toml exists, back it up to
+config.toml.bak-YYYYmmdd-HHMMSS before editing, and preserve the user's
+existing values. Only add missing keys or change values the user asks for.
+
+Set MUSIC_DIR to the user's music directory, defaulting to ~/Music. Create it
+if missing. Search recursively for these extensions:
+mp3 flac m4a ogg opus wav aac wma aiff alac oga mka
+
+Write ~/.config/spotify-adbreak/config.toml with:
+  ad_volume_percent = 0
+  unmute_delay_ms = 500
+  poll_interval_ms = 200
+  premute_ms = 800
+  log_level = "INFO"
+  stream_match_mode = "relaxed"
+  local_music_enabled = true|false
+  music_dir = "/absolute/path/to/Music"
+  music_volume_percent = 70
+  music_player = "mpv"
+
+If no playable audio files exist, set local_music_enabled = false and tell the
+user to add music later. Do not download anything. Use an absolute music_dir
+in the file. Do not install Python packages outside the venv and do not use
+sudo for pip.
+
+STEP 6 - HANDLE AN EXISTING INSTALLATION
+  systemctl --user list-unit-files 'spotify-ad-muter.service' 'spotify-adbreak.service'
+
+If an old spotify-ad-muter.service is active or enabled:
+  systemctl --user disable --now spotify-ad-muter.service
+Move its unit file to
+~/.config/systemd/user/spotify-ad-muter.service.disabled-<timestamp>.
+Preserve the old project and old config; do not delete them.
+
+If spotify-adbreak.service already exists, back up its unit file and config,
+then reinstall/restart. Never run two copies of the watcher at the same time.
+
+STEP 7 - INSTALL THE SERVICE
+  cd ~/projects/spotify-adbreak
+  ./scripts/install.sh
+
+The installer creates the venv if needed, preserves an existing config,
+installs ~/.config/systemd/user/spotify-adbreak.service, and enables/starts it.
+Then restart the unit so an existing process picks up the current code and
+config:
+  systemctl --user restart spotify-adbreak.service
+If the script fails, do the equivalent steps manually and report the exact
+error.
+
+STEP 8 - VERIFY
+  systemctl --user is-active spotify-adbreak.service
+  systemctl --user is-enabled spotify-adbreak.service
+  journalctl --user -u spotify-adbreak.service -n 30 --no-pager
+
+Look for: "Watching Spotify ads; local ad-break music: ..."
+Confirm there is no traceback or error. If Spotify is playing and no ad is
+active, confirm its sink input is not muted with "pactl list sink-inputs". Do
+not mute or unmute other applications.
+
+Do not wait for a real ad. Tell the user the final test is to keep playing
+Spotify until the next ad break. Optionally run:
+  .venv/bin/python -m unittest discover -s tests -q
+
+STEP 9 - REPORT
+Report:
+- repository path
+- service status and enabled state
+- config path and whether local music is enabled
+- music directory and number of tracks found
+- the exact log command:
+  journalctl --user -u spotify-adbreak.service -f
+- any warnings or skipped steps
+- a short reminder: unofficial, mutes ads locally, does not block them, and
+  may conflict with Spotify's Terms of Service.
+
+If anything fails, stop and report the exact command and error. Do not hide
+failures or claim the installation succeeded without verification.
+```
+
+</details>
+
 ## What it does
 
 ```text

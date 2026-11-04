@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 - 2026-11-04
+
+- add a one-shot installation prompt for AI coding agents to both READMEs
+- make the installer restart an existing service so it picks up new code and
+  configuration
+
 ## 0.1.1 - 2026-11-04
 
 - add a Simplified Chinese README

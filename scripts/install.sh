@@ -53,7 +53,8 @@ sed "s|@PROJECT_ROOT@|${PROJECT_ROOT}|g" "${UNIT_TEMPLATE}" > "${UNIT_FILE}"
 
 log "Enabling and starting service"
 systemctl --user daemon-reload
-systemctl --user enable --now spotify-adbreak.service
+systemctl --user enable spotify-adbreak.service
+systemctl --user restart spotify-adbreak.service
 
 log "Install complete"
 log "Check service status with: systemctl --user status spotify-adbreak.service"
