@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spotify-adbreak"
-version = "0.1.0"
+version = "0.1.1"
 description = "Mute Spotify ads on Linux and fill the break with local music"
 readme = "README.md"
 license = "MIT"
@@ -33,6 +33,7 @@ Homepage = "https://github.com/gg686-jkl/spotify-adbreak"
 Repository = "https://github.com/gg686-jkl/spotify-adbreak"
 Issues = "https://github.com/gg686-jkl/spotify-adbreak/issues"
 Changelog = "https://github.com/gg686-jkl/spotify-adbreak/blob/main/CHANGELOG.md"
+Chinese-README = "https://github.com/gg686-jkl/spotify-adbreak/blob/main/README.zh-CN.md"
 Upstream = "https://github.com/Rishabh-Bajpai/spotify-ad-muter"
 
 [project.scripts]

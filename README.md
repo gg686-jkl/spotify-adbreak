@@ -1,3 +1,5 @@
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 # Spotify Ad Break
 
 [![CI](https://github.com/gg686-jkl/spotify-adbreak/actions/workflows/ci.yml/badge.svg)](https://github.com/gg686-jkl/spotify-adbreak/actions/workflows/ci.yml)
@@ -13,6 +15,11 @@ Rishabh Bajpai (MIT). The upstream project was itself inspired by
 [danigm/spotify-ad-blocker](https://github.com/danigm/spotify-ad-blocker).
 The original copyright notice is retained in `LICENSE`; see `NOTICE` for full
 attribution.
+
+> **Unofficial and not affiliated with Spotify.** This tool mutes Spotify's
+> local audio stream during an ad; it does not block, skip, or remove ads. Use
+> at your own risk: it may conflict with Spotify's Terms of Service. See
+> [DISCLAIMER.md](DISCLAIMER.md). This is not legal advice.
 
 ## What it does
 
@@ -36,11 +43,15 @@ calls keep their sound.
 
 ## Disclaimer
 
-- This project is unofficial and is not affiliated with, endorsed by, or
-  sponsored by Spotify or GNOME.
-- You are responsible for complying with Spotify's Terms of Use and any
-  applicable laws or policies when using this software.
-- This software is provided as-is for educational and personal-use purposes.
+This is an independent project and is not affiliated with, endorsed by, or
+sponsored by Spotify AB or GNOME. It mutes the local Spotify audio stream; it
+does not block, skip, or remove ads, modify the Spotify client, or bypass DRM.
+Using it may conflict with Spotify's Terms of Service, and you are responsible
+for complying with those terms and applicable law. Read the full
+[DISCLAIMER.md](DISCLAIMER.md); it is not legal advice.
+
+SPOTIFY and the Spotify logo are trademarks of Spotify AB. All other marks
+belong to their respective owners. No trademark license is granted.
 
 ## Why this exists
 

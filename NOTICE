@@ -16,3 +16,10 @@ danigm/spotify-ad-blocker:
 No source code from that GPL-3.0 project is included in this repository.
 The local-music ad-break player, pre-mute guard, and the other changes in this
 project are original modifications released under the MIT License.
+
+Trademark notice
+----------------
+SPOTIFY and the Spotify logo are trademarks or registered trademarks of
+Spotify AB. This project is independent and is not affiliated with, endorsed
+by, or sponsored by Spotify AB. The name is used only to describe the service
+this tool interoperates with. No trademark license is granted.

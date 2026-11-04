@@ -1,0 +1,9 @@
+include LICENSE
+include NOTICE
+include DISCLAIMER.md
+include README.md
+include README.zh-CN.md
+include CHANGELOG.md
+recursive-include docs *.md
+recursive-include systemd *.service
+recursive-include scripts *.sh

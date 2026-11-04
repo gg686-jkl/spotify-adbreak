@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 - 2026-11-04
+
+- add a Simplified Chinese README
+- expand the legal notice: unofficial status, trademark attribution, no ad
+  blocking, ToS/account risk, local music rights, and liability limits
+- add contribution licensing and legal-hygiene guidance
+- include the disclaimer and docs in source distributions
+
 ## 0.1.0 - 2026-11-04
 
 First independent release of `spotify-adbreak`, derived from
