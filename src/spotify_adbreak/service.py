@@ -109,7 +109,7 @@ class AdMuterService:
             )
             self._ad_active = False
             self._last_muted_streams.clear()
-            await self._stop_local_music()
+            await self._fade_out_local_music()
             self._schedule_restore()
         elif self._guard_active:
             await self._release_guard("next track is not an ad")
@@ -187,6 +187,16 @@ class AdMuterService:
         if self._music.is_playing:
             return
         await self._start_local_music()
+
+    async def _fade_out_local_music(self) -> None:
+        if not self._config.local_music_enabled:
+            return
+        try:
+            await asyncio.to_thread(
+                self._music.fade_out, self._config.music_fade_out_ms / 1000
+            )
+        except Exception as error:
+            self._logger.warning("Failed to fade out local ad-break music: %s", error)
 
     async def _stop_local_music(self) -> None:
         try:

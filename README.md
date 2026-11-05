@@ -357,6 +357,7 @@ stream_match_mode = "relaxed"
 local_music_enabled = true
 music_dir = "~/Music"
 music_volume_percent = 70
+music_fade_out_ms = 2000
 music_player = "mpv"
 ```
 
@@ -367,7 +368,8 @@ CLI flags override config values.
 | `local_music_enabled` | play local music during ads |
 | `music_dir` | directory scanned recursively for audio files |
 | `music_volume_percent` | mpv volume for the ad-break playlist |
-| `music_player` | player executable (must support `--shuffle`/`--loop-playlist`, default `mpv`) |
+| `music_fade_out_ms` | fade local music out over this long when an ad ends; `0` stops immediately (default `2000`) |
+| `music_player` | player executable (must support `--shuffle`/`--loop-playlist`; `mpv` also gives smooth IPC fade-out) |
 | `poll_interval_ms` | how quickly ads are noticed (200 ms recommended) |
 | `premute_ms` | mute this long before a track ends to catch a following ad; `0` disables the guard |
 | `unmute_delay_ms` | delay before Spotify is unmuted at ad end |

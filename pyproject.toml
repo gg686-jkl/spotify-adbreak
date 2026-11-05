@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spotify-adbreak"
-version = "0.1.4"
+version = "0.1.5"
 description = "Mute Spotify ads on Linux and fill the break with local music"
 readme = "README.md"
 license = "MIT"

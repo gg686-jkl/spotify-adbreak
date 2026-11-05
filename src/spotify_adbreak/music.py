@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 from pathlib import Path
 import random
 import shutil
 import signal
+import socket
 import subprocess
+import tempfile
 import threading
 import time
 
@@ -54,6 +57,9 @@ class LocalMusicPlayer:
         self._player = player
         self._lock = threading.Lock()
         self._process: subprocess.Popen[bytes] | None = None
+        self._ipc_path = (
+            Path(tempfile.gettempdir()) / f"spotify-adbreak-mpv-{os.getpid()}.sock"
+        )
         self._empty_warned = False
         self._missing_player_warned = False
 
@@ -98,6 +104,10 @@ class LocalMusicPlayer:
             if len(playlist) > MAX_PLAYLIST_TRACKS:
                 playlist = random.sample(playlist, MAX_PLAYLIST_TRACKS)
 
+            try:
+                self._ipc_path.unlink()
+            except FileNotFoundError:
+                pass
             command = [
                 executable,
                 "--no-config",
@@ -108,6 +118,7 @@ class LocalMusicPlayer:
                 "--no-resume-playback",
                 "--save-position-on-quit=no",
                 "--audio-client-name=ad-break-music",
+                f"--input-ipc-server={self._ipc_path}",
                 f"--volume={self._volume_percent}",
                 "--shuffle",
                 "--loop-playlist=inf",
@@ -144,6 +155,51 @@ class LocalMusicPlayer:
             )
             return True
 
+    def fade_out(self, duration_s: float = 2.0) -> bool:
+        """Fade the ad-break music out, then stop it.
+
+        Fading uses mpv's IPC socket so module-stream-restore never sees a
+        volume of zero. Falling back to an immediate stop is intentional: a
+        missing IPC socket must not leave local music playing forever.
+        """
+        duration_s = max(0.0, min(10.0, float(duration_s)))
+        with self._lock:
+            process = self._process
+            if process is None or process.poll() is not None:
+                self._process = None
+                return False
+
+            if duration_s > 0:
+                try:
+                    with self._ipc_connection() as (sock, reader):
+                        current = self._ipc_command(sock, reader, ["get_property", "volume"])
+                        start = (
+                            float(current)
+                            if isinstance(current, (int, float))
+                            else float(self._volume_percent)
+                        )
+                        steps = max(1, int(duration_s / 0.05))
+                        for step in range(1, steps + 1):
+                            target = start * (1 - step / steps)
+                            self._ipc_command(
+                                sock, reader, ["set_property", "volume", target]
+                            )
+                            time.sleep(duration_s / steps)
+                except (OSError, ValueError, json.JSONDecodeError) as error:
+                    self._logger.warning(
+                        "Could not fade local music over IPC (%s); stopping immediately",
+                        error,
+                    )
+
+            self._process = None
+            self._terminate(process)
+            try:
+                self._ipc_path.unlink()
+            except FileNotFoundError:
+                pass
+            self._logger.info("Stopped local ad-break music")
+            return True
+
     def stop(self) -> bool:
         """Stop the ad-break music, if running."""
         with self._lock:
@@ -154,6 +210,10 @@ class LocalMusicPlayer:
             return False
 
         self._terminate(process)
+        try:
+            self._ipc_path.unlink()
+        except FileNotFoundError:
+            pass
         self._logger.info("Stopped local ad-break music")
         return True
 
@@ -176,6 +236,44 @@ class LocalMusicPlayer:
 
     def _is_running_locked(self) -> bool:
         return self._process is not None and self._process.poll() is None
+
+    class _IpcConnection:
+        def __init__(self, sock: socket.socket, reader) -> None:
+            self.sock = sock
+            self.reader = reader
+
+        def __enter__(self):
+            return self.sock, self.reader
+
+        def __exit__(self, *args) -> None:
+            self.reader.close()
+            self.sock.close()
+
+    def _ipc_connection(self) -> "_IpcConnection":
+        last_error: OSError | None = None
+        for _ in range(20):
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(2.0)
+            try:
+                sock.connect(str(self._ipc_path))
+            except OSError as error:
+                last_error = error
+                sock.close()
+                time.sleep(0.05)
+                continue
+            return self._IpcConnection(sock, sock.makefile("r", encoding="utf-8"))
+        raise last_error or OSError("mpv IPC socket unavailable")
+
+    @staticmethod
+    def _ipc_command(sock: socket.socket, reader, command: list[object]) -> object:
+        sock.sendall((json.dumps({"command": command}) + "\n").encode())
+        line = reader.readline()
+        if not line:
+            raise OSError("mpv IPC closed")
+        response = json.loads(line)
+        if response.get("error") != "success":
+            raise OSError(f"mpv IPC error: {response.get('error')}")
+        return response.get("data")
 
     def _terminate(self, process: subprocess.Popen[bytes]) -> None:
         try:

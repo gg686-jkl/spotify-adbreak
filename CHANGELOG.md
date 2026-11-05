@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5 - 2026-11-05
+
+- fade local ad-break music out over 2 seconds when an ad ends instead of
+  cutting it off abruptly; configurable with `music_fade_out_ms`
+- use mpv IPC for the fade so `module-stream-restore` never records a zero
+  volume for the ad-break player
+
 ## 0.1.4 - 2026-11-05
 
 - fix a race where the reconcile loop could start local ad-break music just

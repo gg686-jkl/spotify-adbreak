@@ -30,6 +30,7 @@ class AdMuterServiceTests(unittest.IsolatedAsyncioTestCase):
         self.music.is_playing = False
         self.music.start = Mock(return_value=True)
         self.music.stop = Mock(return_value=True)
+        self.music.fade_out = Mock(return_value=True)
 
         audio_patcher = patch.object(
             service_module, "SpotifyAudioController", return_value=self.audio
@@ -78,7 +79,7 @@ class AdMuterServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(service._ad_active)
         service._apply_ad_volume.assert_awaited_once()
         self.music.start.assert_called_once_with()
-        self.music.stop.assert_called_once_with()
+        self.music.fade_out.assert_called_once()
         service._schedule_restore.assert_called_once_with()
         self.assertEqual(service._last_muted_streams, set())
         self.logger.info.assert_any_call("Ad detected: %s", "spotify:ad:123")

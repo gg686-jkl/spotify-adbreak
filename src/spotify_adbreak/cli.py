@@ -68,6 +68,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Volume percentage for ad-break music",
     )
     parser.add_argument(
+        "--music-fade-out-ms",
+        type=int,
+        default=None,
+        dest="music_fade_out_ms",
+        help="Fade-out duration when an ad ends, in milliseconds (default: 2000)",
+    )
+    parser.add_argument(
         "--music-player",
         dest="music_player",
         help="Player executable used for ad-break music (default: mpv)",
