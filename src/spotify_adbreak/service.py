@@ -120,7 +120,10 @@ class AdMuterService:
             await asyncio.sleep(interval)
             if self._ad_active:
                 await self._apply_ad_volume()
-                await self._ensure_local_music()
+                # The ad may have ended while apply_ad_volume() was running in
+                # a worker thread; do not start music for a finished ad.
+                if self._ad_active:
+                    await self._ensure_local_music()
             elif self._guard_active:
                 elapsed = asyncio.get_running_loop().time() - self._guard_started_at
                 if elapsed > 2.0:
@@ -166,15 +169,20 @@ class AdMuterService:
             self._logger.warning("Failed to change Spotify stream volume: %s", error)
 
     async def _start_local_music(self) -> None:
-        if not self._config.local_music_enabled:
+        if not self._config.local_music_enabled or not self._ad_active:
             return
         try:
-            await asyncio.to_thread(self._music.start)
+            started = await asyncio.to_thread(self._music.start)
         except Exception as error:
             self._logger.warning("Failed to start local ad-break music: %s", error)
+            return
+        # Ad ended while the player was starting (startup takes ~150 ms);
+        # stop it instead of leaving local music over the next Spotify track.
+        if started and not self._ad_active:
+            await self._stop_local_music()
 
     async def _ensure_local_music(self) -> None:
-        if not self._config.local_music_enabled:
+        if not self._config.local_music_enabled or not self._ad_active:
             return
         if self._music.is_playing:
             return

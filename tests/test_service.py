@@ -96,11 +96,34 @@ class AdMuterServiceTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_ensure_local_music_restarts_after_player_exits(self) -> None:
         service = self.make_service()
+        service._ad_active = True
         self.music.is_playing = False
 
         await service._ensure_local_music()
 
         self.music.start.assert_called_once_with()
+
+    async def test_ensure_local_music_does_nothing_after_ad_ended(self) -> None:
+        service = self.make_service()
+        service._ad_active = False
+
+        await service._ensure_local_music()
+
+        self.music.start.assert_not_called()
+
+    async def test_start_local_music_stops_if_ad_ends_during_start(self) -> None:
+        service = self.make_service()
+        service._ad_active = True
+
+        def start_and_end_ad() -> bool:
+            service._ad_active = False
+            return True
+
+        self.music.start = Mock(side_effect=start_and_end_ad)
+
+        await service._start_local_music()
+
+        self.music.stop.assert_called_once_with()
 
     async def test_track_end_guard_mutes_and_next_song_releases(self) -> None:
         service = self.make_service()

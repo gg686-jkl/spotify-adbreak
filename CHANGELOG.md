@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4 - 2026-11-05
+
+- fix a race where the reconcile loop could start local ad-break music just
+  after an ad ended, leaving mpv playing over the next Spotify track
+- re-check the ad state after volume changes and stop local music if the ad
+  ends while the player is starting
+
 ## 0.1.3 - 2026-11-05
 
 - fix Spotify staying muted when it recreates its audio stream around ad
