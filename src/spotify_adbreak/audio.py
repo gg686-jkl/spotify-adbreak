@@ -19,6 +19,10 @@ class SpotifyAudioController:
         self._match_mode = match_mode
         self._pulse: pulsectl.Pulse | None = None
         self._saved_mute_states: dict[int, StreamMuteSnapshot] = {}
+        # Streams that existed before the current mute cycle. A stream that
+        # appears later may inherit our mute state from module-stream-restore;
+        # it must be treated as "was audible" so it gets unmuted afterwards.
+        self._streams_at_cycle_start: set[int] | None = None
 
     @property
     def has_saved_volumes(self) -> bool:
@@ -32,13 +36,20 @@ class SpotifyAudioController:
     def apply_ad_volume(self, percent: int) -> list[int]:
         pulse = self._pulse_client()
         streams = self._spotify_streams(pulse)
+        if self._streams_at_cycle_start is None:
+            self._streams_at_cycle_start = {stream.index for stream in streams}
 
         changed: list[int] = []
         for stream in streams:
             if stream.index not in self._saved_mute_states:
+                muted = bool(stream.mute)
+                if stream.index not in self._streams_at_cycle_start:
+                    # New stream during the mute cycle: this is our inherited
+                    # mute, not a user preference, so restore it to audible.
+                    muted = False
                 self._saved_mute_states[stream.index] = StreamMuteSnapshot(
                     index=stream.index,
-                    muted=bool(stream.mute),
+                    muted=muted,
                 )
             if not stream.mute:
                 pulse.sink_input_mute(stream.index, True)
@@ -48,6 +59,7 @@ class SpotifyAudioController:
     def restore_volumes(self) -> list[int]:
         pulse = self._pulse_client()
         restored: list[int] = []
+        tracked = set(self._saved_mute_states)
         for index, snapshot in list(self._saved_mute_states.items()):
             try:
                 stream_info = pulse.sink_input_info(index)
@@ -59,6 +71,19 @@ class SpotifyAudioController:
             pulse.sink_input_volume_set(index, stream_info.volume)
             restored.append(index)
             self._saved_mute_states.pop(index, None)
+
+        # A stream can appear between the last ad-volume pass and this restore
+        # (Spotify recreates its player around ad boundaries). If it inherited
+        # our mute from module-stream-restore, it was never added to the
+        # snapshot above; unmute it now rather than leaving Spotify silent.
+        if self._streams_at_cycle_start is not None:
+            for stream in self._spotify_streams(pulse):
+                if stream.index not in tracked and stream.mute:
+                    pulse.sink_input_mute(stream.index, False)
+                    pulse.sink_input_volume_set(stream.index, stream.volume)
+                    restored.append(stream.index)
+
+        self._streams_at_cycle_start = None
         return restored
 
     def recover_stuck_streams(self) -> list[int]:

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 - 2026-11-05
+
+- fix Spotify staying muted when it recreates its audio stream around ad
+  boundaries; restore now recovers untracked Spotify streams that inherited
+  the service's mute state
+
 ## 0.1.2 - 2026-11-04
 
 - add a one-shot installation prompt for AI coding agents to both READMEs

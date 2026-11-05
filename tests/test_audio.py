@@ -194,6 +194,66 @@ class SpotifyAudioControllerTests(unittest.TestCase):
         pulse.sink_input_volume_set.assert_called_once_with(10, spotify_stream.volume)
         self.assertFalse(controller.has_saved_volumes)
 
+    def test_restore_unmutes_stream_created_during_ad_with_inherited_mute(self) -> None:
+        controller = SpotifyAudioController(self.logger)
+        first = FakeStream(
+            10,
+            name="Spotify",
+            proplist={"application.name": "Spotify"},
+            mute=False,
+        )
+        pulse = Mock()
+        pulse.sink_input_list.return_value = [first]
+        controller._pulse = pulse
+
+        controller.apply_ad_volume(0)
+
+        # Spotify may create a second stream while the ad is muted. It inherits
+        # the mute state from module-stream-restore and is not a user choice.
+        second = FakeStream(
+            11,
+            name="Spotify",
+            proplist={"application.name": "Spotify"},
+            mute=True,
+        )
+        pulse.sink_input_list.return_value = [first, second]
+        controller.apply_ad_volume(0)
+        pulse.sink_input_info.side_effect = lambda index: {10: first, 11: second}[index]
+
+        restored = controller.restore_volumes()
+
+        self.assertEqual(restored, [10, 11])
+        pulse.sink_input_mute.assert_any_call(11, False)
+        self.assertFalse(controller.has_saved_volumes)
+
+    def test_restore_unmutes_untracked_stream_created_before_restore(self) -> None:
+        controller = SpotifyAudioController(self.logger)
+        first = FakeStream(
+            10,
+            name="Spotify",
+            proplist={"application.name": "Spotify"},
+            mute=False,
+        )
+        late = FakeStream(
+            12,
+            name="Spotify",
+            proplist={"application.name": "Spotify"},
+            mute=True,
+        )
+        pulse = Mock()
+        pulse.sink_input_list.return_value = [first]
+        pulse.sink_input_info.return_value = first
+        controller._pulse = pulse
+
+        controller.apply_ad_volume(0)
+        pulse.sink_input_list.return_value = [first, late]
+
+        restored = controller.restore_volumes()
+
+        self.assertEqual(restored, [10, 12])
+        pulse.sink_input_mute.assert_any_call(12, False)
+        self.assertFalse(controller.has_saved_volumes)
+
     def test_restore_volumes_drops_missing_streams(self) -> None:
         controller = SpotifyAudioController(self.logger)
         pulse = Mock()
