@@ -68,6 +68,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Volume percentage for ad-break music",
     )
     parser.add_argument(
+        "--music-stop-mode",
+        choices=("fade", "finish"),
+        dest="music_stop_mode",
+        help="When an ad ends: fade local music out, or finish the current track",
+    )
+    parser.add_argument(
         "--music-fade-out-ms",
         type=int,
         default=None,

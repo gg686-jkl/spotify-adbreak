@@ -326,6 +326,7 @@ stream_match_mode = "relaxed"
 local_music_enabled = true
 music_dir = "~/Music"
 music_volume_percent = 70
+music_stop_mode = "finish"
 music_fade_out_ms = 2000
 music_player = "mpv"
 ```
@@ -342,6 +343,7 @@ music_player = "mpv"
 | `local_music_enabled` | 是否在广告期间播放本地音乐 |
 | `music_dir` | 本地音乐目录，递归扫描 |
 | `music_volume_percent` | 广告歌单的 mpv 音量 |
+| `music_stop_mode` | `fade`（默认）广告结束时淡出本地音乐；`finish` 等当前本地歌曲完整播放后再恢复 Spotify |
 | `music_fade_out_ms` | 广告结束时本地音乐淡出时长；`0` 表示立即停止（默认 `2000`） |
 | `music_player` | 播放器可执行文件；需支持 `--shuffle`/`--loop-playlist`，`mpv` 还可通过 IPC 平滑淡出 |
 

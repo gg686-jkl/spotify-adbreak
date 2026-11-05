@@ -155,6 +155,30 @@ class LocalMusicPlayer:
             )
             return True
 
+    def remaining_seconds(self) -> float | None:
+        """Return the remaining playback time of the current local track."""
+        with self._lock:
+            if not self._is_running_locked():
+                return None
+            try:
+                with self._ipc_connection() as (sock, reader):
+                    position = self._ipc_command(
+                        sock, reader, ["get_property", "time-pos"]
+                    )
+                    duration = self._ipc_command(
+                        sock, reader, ["get_property", "duration"]
+                    )
+            except (OSError, ValueError, json.JSONDecodeError) as error:
+                self._logger.warning("Could not read local music position: %s", error)
+                return None
+
+        if not isinstance(position, (int, float)) or not isinstance(duration, (int, float)):
+            return None
+        remaining = float(duration) - float(position)
+        if remaining <= 0:
+            return 0.0
+        return remaining
+
     def fade_out(self, duration_s: float = 2.0) -> bool:
         """Fade the ad-break music out, then stop it.
 

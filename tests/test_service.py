@@ -49,10 +49,14 @@ class AdMuterServiceTests(unittest.IsolatedAsyncioTestCase):
         music_patcher.start()
 
     async def asyncTearDown(self) -> None:
-        if hasattr(self, "service") and self.service._restore_task is not None:
-            self.service._restore_task.cancel()
-            with self.assertRaises(asyncio.CancelledError):
-                await self.service._restore_task
+        if not hasattr(self, "service"):
+            return
+        for attribute in ("_restore_task", "_finish_task"):
+            task = getattr(self.service, attribute, None)
+            if task is not None:
+                task.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await task
 
     def make_service(self, **config_overrides: int) -> AdMuterService:
         config_values = {
@@ -94,6 +98,39 @@ class AdMuterServiceTests(unittest.IsolatedAsyncioTestCase):
         await service._handle_state_change(True, "spotify:ad:123")
 
         self.music.start.assert_not_called()
+
+    async def test_finish_mode_waits_for_current_track_then_stops(self) -> None:
+        service = self.make_service(music_stop_mode="finish")
+        self.music.remaining_seconds = Mock(return_value=0.01)
+        service._ad_active = True
+        service._stop_local_music = AsyncMock()
+        service._schedule_restore = Mock()
+
+        await service._handle_state_change(False, "spotify:track:after-ad")
+        task = service._finish_task
+        self.assertIsNotNone(task)
+        await task
+
+        service._stop_local_music.assert_awaited_once()
+        service._schedule_restore.assert_called_once_with()
+        self.music.fade_out.assert_not_called()
+        self.assertIsNone(service._finish_task)
+
+    async def test_new_ad_cancels_pending_finish_wait(self) -> None:
+        service = self.make_service(music_stop_mode="finish")
+        self.music.remaining_seconds = Mock(return_value=10.0)
+        self.music.is_playing = True
+        service._ad_active = True
+        service._apply_ad_volume = AsyncMock()
+
+        await service._handle_state_change(False, "spotify:track:after-ad")
+        task = service._finish_task
+        self.assertIsNotNone(task)
+
+        await service._handle_state_change(True, "spotify:ad:next")
+        self.assertIsNone(service._finish_task)
+        await asyncio.sleep(0)
+        self.assertTrue(task.cancelled())
 
     async def test_ensure_local_music_restarts_after_player_exits(self) -> None:
         service = self.make_service()

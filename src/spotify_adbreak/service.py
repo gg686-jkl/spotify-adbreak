@@ -38,6 +38,7 @@ class AdMuterService:
         self._audio_lock = asyncio.Lock()
         self._last_muted_streams: set[int] = set()
         self._restore_task: asyncio.Task[None] | None = None
+        self._finish_task: asyncio.Task[None] | None = None
         self._shutdown = asyncio.Event()
 
     async def run(self) -> None:
@@ -60,6 +61,10 @@ class AdMuterService:
             watcher_task.cancel()
             reconcile_task.cancel()
             self._guard_active = False
+            if self._finish_task is not None:
+                self._finish_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await self._finish_task
             if self._restore_task is not None:
                 self._restore_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
@@ -99,6 +104,7 @@ class AdMuterService:
             # owns the saved state and will restore it when the ad ends.
             self._guard_active = False
             self._cancel_restore_task()
+            self._cancel_finish_task()
             await self._apply_ad_volume()
             await self._start_local_music()
             return
@@ -109,8 +115,14 @@ class AdMuterService:
             )
             self._ad_active = False
             self._last_muted_streams.clear()
-            await self._fade_out_local_music()
-            self._schedule_restore()
+            if (
+                self._config.local_music_enabled
+                and self._config.music_stop_mode == "finish"
+            ):
+                await self._wait_for_local_track_end()
+            else:
+                await self._fade_out_local_music()
+                self._schedule_restore()
         elif self._guard_active:
             await self._release_guard("next track is not an ad")
 
@@ -187,6 +199,45 @@ class AdMuterService:
         if self._music.is_playing:
             return
         await self._start_local_music()
+
+    async def _wait_for_local_track_end(self) -> None:
+        try:
+            remaining = await asyncio.to_thread(self._music.remaining_seconds)
+        except Exception as error:
+            self._logger.warning("Failed to read local music position: %s", error)
+            remaining = None
+
+        if remaining is None:
+            # The player cannot report a position (missing IPC, already
+            # stopped, or a non-mpv player): do not leave Spotify muted.
+            await self._stop_local_music()
+            self._schedule_restore()
+            return
+
+        self._logger.info(
+            "Waiting %.1fs for the local ad-break track to finish", remaining
+        )
+        self._finish_task = asyncio.create_task(
+            self._finish_local_music(remaining), name="finish-local-music"
+        )
+
+    async def _finish_local_music(self, remaining: float) -> None:
+        try:
+            await asyncio.sleep(max(0.0, remaining) + 0.25)
+            if self._ad_active:
+                return
+            await self._stop_local_music()
+            if not self._ad_active:
+                self._schedule_restore()
+        except asyncio.CancelledError:
+            raise
+        finally:
+            self._finish_task = None
+
+    def _cancel_finish_task(self) -> None:
+        if self._finish_task is not None:
+            self._finish_task.cancel()
+            self._finish_task = None
 
     async def _fade_out_local_music(self) -> None:
         if not self._config.local_music_enabled:

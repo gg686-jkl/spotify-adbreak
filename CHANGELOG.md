@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6 - 2026-11-06
+
+- add `music_stop_mode` with two choices: `fade` (default) or `finish`
+- `finish` keeps Spotify muted until the current local track ends naturally,
+  then switches back; a new ad cancels the wait and keeps local music running
+- the user's config now uses `music_stop_mode = "finish"`
+
 ## 0.1.5 - 2026-11-05
 
 - fade local ad-break music out over 2 seconds when an ad ends instead of
