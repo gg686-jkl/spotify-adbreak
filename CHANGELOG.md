@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.7 - 2026-11-06
+
+- fix finish mode letting Spotify and local music play together: the
+  pre-mute guard could trigger on the next Spotify track while the local
+  track was still filling the ad break, and its release unmuted Spotify
+  underneath the local music
+- pre-mute is now ignored while a finish wait is pending, and any stale guard
+  is cleared when the ad ends
+
 ## 0.1.6 - 2026-11-06
 
 - add `music_stop_mode` with two choices: `fade` (default) or `finish`

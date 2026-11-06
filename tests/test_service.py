@@ -163,6 +163,17 @@ class AdMuterServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.music.stop.assert_called_once_with()
 
+    async def test_track_ending_is_ignored_while_finish_wait_pending(self) -> None:
+        service = self.make_service(music_stop_mode="finish")
+        service._apply_ad_volume = AsyncMock()
+        service._finish_task = Mock()
+
+        await service._handle_track_ending()
+
+        service._apply_ad_volume.assert_not_awaited()
+        self.assertFalse(service._guard_active)
+        service._finish_task = None
+
     async def test_track_end_guard_mutes_and_next_song_releases(self) -> None:
         service = self.make_service()
         service._apply_ad_volume = AsyncMock()

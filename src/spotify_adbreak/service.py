@@ -114,6 +114,9 @@ class AdMuterService:
                 "Ad finished, restoring volume in %sms", self._config.unmute_delay_ms
             )
             self._ad_active = False
+            # A guard from before the ad must not outlive it: in finish mode
+            # Spotify stays deliberately muted while the local track plays.
+            self._guard_active = False
             self._last_muted_streams.clear()
             if (
                 self._config.local_music_enabled
@@ -124,6 +127,11 @@ class AdMuterService:
                 await self._fade_out_local_music()
                 self._schedule_restore()
         elif self._guard_active:
+            if self._finish_task is not None:
+                # The local track is still filling the ad break; do not let a
+                # stale pre-mute guard unmute Spotify underneath it.
+                self._guard_active = False
+                return
             await self._release_guard("next track is not an ad")
 
     async def _reconcile_loop(self) -> None:
@@ -136,14 +144,17 @@ class AdMuterService:
                 # a worker thread; do not start music for a finished ad.
                 if self._ad_active:
                     await self._ensure_local_music()
-            elif self._guard_active:
+            elif self._guard_active and self._finish_task is None:
                 elapsed = asyncio.get_running_loop().time() - self._guard_started_at
                 if elapsed > 2.0:
                     await self._release_guard("no track change after 2s")
 
     async def _handle_track_ending(self) -> None:
         """Pre-mute just before a track ends so a following ad cannot leak."""
-        if self._ad_active or self._guard_active:
+        if self._ad_active or self._guard_active or self._finish_task is not None:
+            # During finish mode Spotify is intentionally muted and local
+            # music is playing. Pre-muting here would create a guard whose
+            # later release unmutes Spotify while local music still plays.
             return
         self._logger.debug(
             "Track nearly finished; pre-muting Spotify for up to %sms",
@@ -226,6 +237,7 @@ class AdMuterService:
             await asyncio.sleep(max(0.0, remaining) + 0.25)
             if self._ad_active:
                 return
+            self._guard_active = False
             await self._stop_local_music()
             if not self._ad_active:
                 self._schedule_restore()
